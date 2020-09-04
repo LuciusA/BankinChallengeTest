@@ -1,0 +1,22 @@
+{
+  "name": "bankinchallengetest",
+  "version": "1.0.0",
+  "description": "Bankin Test",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm install && node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuciusA/BankinChallengeTest.git"
+  },
+  "author": "Antonin LUCIUS",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LuciusA/BankinChallengeTest/issues"
+  },
+  "homepage": "https://github.com/LuciusA/BankinChallengeTest#readme",
+  "dependencies": {
+    "axios": "^0.20.0"
+  }
+}
