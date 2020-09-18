@@ -17,92 +17,110 @@ const headers = {
   },
 };
 
-let accounts = [];
-let transactions = [];
-let finalData = [];
+const fetchRefreshToken = async () => {
+  try {
+    const response = await axios.post(
+      `${url}/login`,
+      { user, password },
+      headers
+    );
+    //console.log(response.data.refresh_token);
 
-const getRefreshToken = async () => {
-  await axios
-    .post(`${url}/login`, { user, password }, headers)
-    .then((res) => {
-      console.log(res.data.refresh_token);
-      getAccessToken(res.data.refresh_token);
-    })
-    .catch((err) => {
-      console.error(err);
-    });
+    return response.data.refresh_token;
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const getAccessToken = async (refreshToken) => {
-  await axios
-    .post(
+const fetchAccessToken = async () => {
+  const refreshToken = await fetchRefreshToken();
+  try {
+    const response = await axios.post(
       `${url}/token`,
       {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
       },
       headers
-    )
-    .then((res) => {
-      console.log(res.data.access_token);
-      getAccountsList(res.data.access_token);
-    })
-    .catch((err) => console.error(err));
+    );
+    //console.log(response.data.access_token);
+
+    return response.data.access_token;
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const getAccountsList = async (accessToken) => {
-  await axios
-    .get(`${url}/accounts`, {
+const fetchAccounts = async (accessToken) => {
+  try {
+    const response = await axios.get(`${url}/accounts`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    .then((res) => {
-      console.log(res.data);
-      for (const account in res.data.account) {
-        if (res.data.account.hasOwnProperty(account)) {
-          const element = res.data.account[account];
-          accounts.push(element);
-          console.log(accounts);
-        }
+    });
+    //console.log(response.data.account);
+
+    const accounts = [];
+
+    for (const account in response.data.account) {
+      if (response.data.account.hasOwnProperty(account))
+        accounts.push(response.data.account[account]);
+    }
+
+    return accounts;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const fetchAccountTransactions = async (account, accessToken) => {
+  try {
+    const response = await axios.get(
+      `${url}/accounts/${account.acc_number}/transactions`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
       }
-      accounts.forEach((account) => {
-        getTransactionsByAccount(accessToken, account);
-      });
-    })
-    .catch((err) => console.error(err));
-};
+    );
+    //console.log(response.data.transactions);
 
-const getTransactionsByAccount = async (accessToken, account) => {
-  await axios
-    .get(`${url}/accounts/${account.acc_number}/transactions`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    .then((res) => {
-      console.log(res.data);
-      for (const transaction in res.data.transactions) {
-        if (res.data.transactions.hasOwnProperty(transaction)) {
-          const element = res.data.transactions[transaction];
-          transactions.push(element);
-          console.log(transactions);
-        }
+    const transactions = [];
+
+    for (const transaction in response.data.transactions) {
+      if (response.data.transactions.hasOwnProperty(transaction)) {
+        delete transaction.id;
+        delete transaction.sign;
+        transactions.push(response.data.transactions[transaction]);
       }
-      parseData(account, transactions);
-    })
-    .catch((err) => console.error(err));
+    }
+
+    return transactions;
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const parseData = (account, transactions) => {
-  transactions.forEach((transaction) => {
-    delete transaction.id;
-    delete transaction.sign;
-  });
+const fetchAccountData = async (account, accessToken) => {
+  const { acc_number, amount } = account;
+  const transactions = await fetchAccountTransactions(account, accessToken);
 
-  finalData.push({
-    acc_number: account.acc_number,
-    amount: account.amount,
-    transactions: transactions,
-  });
-
-  console.log(finalData);
+  return {
+    acc_number,
+    amount,
+    transactions,
+  };
 };
 
-getRefreshToken();
+const fetchFormattedAccountsData = async () => {
+  try {
+    const formattedAccountsData = [];
+    const accessToken = await fetchAccessToken();
+    const accounts = await fetchAccounts(accessToken);
+
+    accounts.forEach(async (account) => {
+      formattedAccountsData.push(await fetchAccountData(account, accessToken));
+      console.log(formattedAccountsData);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+fetchFormattedAccountsData();
